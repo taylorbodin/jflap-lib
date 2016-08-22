@@ -16,9 +16,11 @@
 
 package edu.duke.cs.jflap.automata.fsa;
 
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
@@ -29,6 +31,7 @@ import edu.duke.cs.jflap.automata.ClosureTaker;
 import edu.duke.cs.jflap.automata.State;
 import edu.duke.cs.jflap.automata.StatePlacer;
 import edu.duke.cs.jflap.automata.Transition;
+import edu.duke.cs.jflap.automata.mealy.MooreMachine;
 
 /**
  * The LambdaClosure object can be used to remove all lambda transitions from a given
@@ -39,6 +42,10 @@ import edu.duke.cs.jflap.automata.Transition;
  *
  */
 
+/**
+ * @author Taylor
+ *
+ */
 public class LambdaClosure {
 	/**
 	 * Creates an instance of <CODE>LambdaClosure</CODE>
@@ -64,18 +71,6 @@ public class LambdaClosure {
 				return true;
 		}
 		return false;
-	}
-
-	/**
-	 * Copies states from the FA with lambda transitions to the new FA
-	 * @param q1
-	 * 			The lambda-NFA
-	 * @param q2
-	 * 			The regular NFA
-	 * @return q2
-	 */
-	public Automaton copyStates(Automaton q1, Automaton q2) {
-		return q2;
 	}
 	
 	/**
@@ -171,7 +166,7 @@ public class LambdaClosure {
 	}
 
 	/**
-	 * Creates a state in <CODE>dfa</CODE>, labelled with the set of states
+	 * Creates a state in <CODE>dfa</CODE>, labeled with the set of states
 	 * in <CODE>states</CODE>, which are all states from <CODE>nfa</CODE>.
 	 * 
 	 * @param dfa
@@ -216,7 +211,27 @@ public class LambdaClosure {
 	}
 	
 	/**
-	 * Returns a list of States created by expanding <CODE>state</CODE> in
+	 * Returns the State mapped to <CODE>states</CODE>.
+	 * 
+	 * @param states
+	 *            the states
+	 * @param dfa
+	 *            the automaton that contains a state that is mapped to <CODE>states</CODE>
+	 * @return the State mapped to <CODE>states</CODE>.
+	 */
+	public State getStateForStates(State[] states, Automaton dfa, Automaton nfa) {
+		State[] dfaStates = dfa.getStates();
+		for (int k = 0; k < dfaStates.length; k++) {
+			State[] nfaStates = getStatesForState(dfaStates[k], nfa);
+			if (containSameStates(nfaStates, states)) {
+				return dfaStates[k];
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 *TODO: Returns a list of States created by expanding <CODE>state</CODE> in
 	 * <CODE>dfa</CODE>. <CODE>state<CODE> is a state in <CODE>dfa</CODE>
 	 * that represents a set of states in <CODE>nfa</CODE>. This method adds
 	 * transitions to <CODE>dfa</CODE> from <CODE>state</CODE> on all
@@ -278,29 +293,10 @@ public class LambdaClosure {
 		}
 		return list;
 	}
+
 	
 	/**
-	 * Returns the State mapped to <CODE>states</CODE>.
-	 * 
-	 * @param states
-	 *            the states
-	 * @param dfa
-	 *            the automaton that contains a state that is mapped to <CODE>states</CODE>
-	 * @return the State mapped to <CODE>states</CODE>.
-	 */
-	public State getStateForStates(State[] states, Automaton dfa, Automaton nfa) {
-		State[] dfaStates = dfa.getStates();
-		for (int k = 0; k < dfaStates.length; k++) {
-			State[] nfaStates = getStatesForState(dfaStates[k], nfa);
-			if (containSameStates(nfaStates, states)) {
-				return dfaStates[k];
-			}
-		}
-		return null;
-	}
-	
-	/**
-	 * Returns a 
+	 *TODO: Returns a 
 	 * 
 	 * @param automaton
 	 * 			The Automaton on which the lambda transitions will be removed
@@ -308,13 +304,73 @@ public class LambdaClosure {
 	 * @return fsa
 	 * 			The FSA with lambda transitions removed
 	 */
-	public FiniteStateAutomaton removeLambdaTrans(Automaton automaton) {
-
-		/** remove multiple character labels. */
-		if (FSALabelHandler.hasMultipleCharacterLabels(automaton)) {
-			FSALabelHandler.removeMultipleCharacterLabelsFromAutomaton(automaton);
+	public FiniteStateAutomaton removeLambdaTrans(FiniteStateAutomaton srcAutomaton) {
+		
+		// remove multiple character labels. 
+		if (FSALabelHandler.hasMultipleCharacterLabels(srcAutomaton)) {
+			FSALabelHandler.removeMultipleCharacterLabelsFromAutomaton(srcAutomaton);
 		}
-
-		return fsa;
+		
+		// Initialize the destination automaton
+		FiniteStateAutomaton destAutomaton = new FiniteStateAutomaton();
+		
+		// Copy the source automaton
+		destAutomaton.become(destAutomaton, srcAutomaton);
+		
+		// Remove old transitions from state to state
+		Transition[] oldTransitions = destAutomaton.getTransitions();
+		
+		for(int i = 0; i < oldTransitions.length; i++) {
+			destAutomaton.removeTransition(oldTransitions[i]);
+		}
+		
+		// Calculate the transition function for the new Automaton
+		
+		State[] states = destAutomaton.getStates();
+		
+		for(int i = 0; i < states.length; i++) {
+			State[] lambdaStates = ClosureTaker.getClosure(states[i], srcAutomaton);
+			
+				AlphabetRetriever far = new FSAAlphabetRetriever();
+				String[] alphabet = far.getAlphabet(srcAutomaton);
+				/** for each letter in the alphabet. */
+				for (int j = 0; j < alphabet.length; j++) {
+					
+					 //get states reachable on terminal from all lambda reachable states
+					 
+					State[] reachableStates = getStatesOnTerminal(alphabet[j], lambdaStates, srcAutomaton);
+					
+					// if any reachable states on terminal.
+					if (reachableStates.length > 0) {
+						
+						State toState = getStateForStates(states, destAutomaton, srcAutomaton);
+						// if no such state.
+						if (toState == null) {
+						break;
+						}
+						
+						
+						 //add transition to the destination Automaton
+						Transition transition = new FSATransition(states[i], toState,
+								alphabet[j]);
+						destAutomaton.addTransition(transition);
+					}
+				}
+			}
+		
+		// Check to see if the initial state should be a final state (accepts a null string)
+		// I know it's not pretty
+		State initialState = destAutomaton.getInitialState();
+		State[] initialLambdaTransitions = ClosureTaker.getClosure(initialState, srcAutomaton);
+		
+		for(int i = 0; i < initialLambdaTransitions.length; i++) {
+			if (destAutomaton.isFinalState(initialLambdaTransitions[i])) {
+				destAutomaton.addFinalState(initialState);
+			}
+		}
+		
+		
+		return destAutomaton;
 	}
+
 }
