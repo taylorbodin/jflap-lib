@@ -16,22 +16,18 @@
 
 package edu.duke.cs.jflap.automata.fsa;
 
-import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
 import edu.duke.cs.jflap.automata.AlphabetRetriever;
 import edu.duke.cs.jflap.automata.Automaton;
-import edu.duke.cs.jflap.automata.AutomatonChecker;
 import edu.duke.cs.jflap.automata.ClosureTaker;
 import edu.duke.cs.jflap.automata.State;
 import edu.duke.cs.jflap.automata.StatePlacer;
 import edu.duke.cs.jflap.automata.Transition;
-import edu.duke.cs.jflap.automata.mealy.MooreMachine;
 
 /**
  * The LambdaClosure object can be used to remove all lambda transitions from a given
@@ -42,89 +38,13 @@ import edu.duke.cs.jflap.automata.mealy.MooreMachine;
  *
  */
 
-/**
- * @author Taylor
- *
- */
+
 public class LambdaClosure {
 	/**
 	 * Creates an instance of <CODE>LambdaClosure</CODE>
 	 */
 	public LambdaClosure() {
 
-	}
-
-	/**
-	 * Returns true if one or more of the states in <CODE>states</CODE> are
-	 * final.
-	 * 
-	 * @param states
-	 *            the set of states
-	 * @param automaton
-	 *            the automaton that contains <CODE>states</CODE>
-	 * @return true if one or more of the states in <CODE>states</CODE> are
-	 *         final
-	 */
-	public boolean hasFinalState(State[] states, Automaton automaton) {
-		for (int k = 0; k < states.length; k++) {
-			if (automaton.isFinalState(states[k]))
-				return true;
-		}
-		return false;
-	}
-	
-	/**
-	 * Returns all states reachable on <CODE>terminal</CODE> from <CODE>states</CODE>,
-	 * including the closure of all reachable states.
-	 * 
-	 * @param terminal
-	 *            the terminal (alphabet character)
-	 * @param states
-	 *            the set of states that we are checking to see if they have
-	 *            transitions on <CODE>terminal</CODE>.
-	 * @param automaton
-	 *            the automaton.
-	 * @return all states reachable on <CODE>terminal</CODE> from <CODE>states</CODE>,
-	 *         including the closure of all reachable states.
-	 */
-	public State[] getStatesOnTerminal(String terminal, State[] states,
-			Automaton automaton) {
-		ArrayList list = new ArrayList();
-		for (int k = 0; k < states.length; k++) {
-			State state = states[k];
-			Transition[] transitions = automaton.getTransitionsFromState(state);
-			for (int i = 0; i < transitions.length; i++) {
-				FSATransition transition = (FSATransition) transitions[i];
-				if (transition.getLabel().equals(terminal)) {
-					State toState = transition.getToState();
-					State[] closure = ClosureTaker.getClosure(toState,
-							automaton);
-					for (int j = 0; j < closure.length; j++) {
-						if (!list.contains(closure[j])) {
-							list.add(closure[j]);
-						}
-					}
-				}
-			}
-		}
-		return (State[]) list.toArray(new State[0]);
-	}
-
-	/**
-	 * Returns a string representation of <CODE>states</CODE>.
-	 * 
-	 * @param states
-	 *            the set of states.
-	 * @return a string representation of <CODE>states</CODE>.
-	 */
-	public String getStringForStates(State[] states) {
-		StringBuffer buffer = new StringBuffer();
-		for (int k = 0; k < states.length - 1; k++) {
-			buffer.append(Integer.toString(states[k].getID()));
-			buffer.append(",");
-		}
-		buffer.append(Integer.toString(states[states.length - 1].getID()));
-		return buffer.toString();
 	}
 
 	/**
@@ -139,7 +59,7 @@ public class LambdaClosure {
 	 *         identical (i.e. they contain exactly the same states, and no
 	 *         extras).
 	 */
-	public boolean containSameStates(State[] states1, State[] states2) {
+	public static boolean containSameStates(State[] states1, State[] states2) {
 		int len1 = states1.length;
 		int len2 = states2.length;
 		if (len1 != len2)
@@ -164,213 +84,191 @@ public class LambdaClosure {
 		}
 		return true;
 	}
-
+	
 	/**
-	 * Creates a state in <CODE>dfa</CODE>, labeled with the set of states
-	 * in <CODE>states</CODE>, which are all states from <CODE>nfa</CODE>.
-	 * 
-	 * @param dfa
-	 *            the dfa. the automaton the state is added to
-	 * @param states
-	 *            the set of states from the nfa that this created state in the
-	 *            dfa will represent
-	 * @param nfa
-	 *            the nfa
-	 * @return the created state
+	 * TODO: Copies the states, and only the states, from the srcFSA to the destFSA
+	 * @param srcFSA
+	 * @param destFSA
 	 */
-	public State createStateWithStates(Automaton dfa, State[] states,
-			Automaton nfa) {
-		StatePlacer sp = new StatePlacer();
-		State state = dfa.createState(sp.getPointForState(dfa));
-		state.setLabel(getStringForStates(states));
-		if (hasFinalState(states, nfa)) {
-			dfa.addFinalState(state);
+	public static void copyStates(FiniteStateAutomaton srcFSA, FiniteStateAutomaton destFSA) {
+		State[] srcStates = srcFSA.getStates();
+		State[] destStates = destFSA.getStates();
+		
+		
+		// Check uninitialized
+		// TODO: throw and exception if the fsa has states
+		if (destStates.length > 0) {
+			System.out.println("The Destination FSA already has states!");
+			System.out.println("Deleting states...");
+			
+			for (int i = 0; i < destStates.length; i++) {
+				destFSA.removeState(destStates[i]);
+			}
+			
+			System.out.println("DONE");
 		}
-		return state;
+		
+		// Copy states and set special states
+		for (int i = 0; i < srcStates.length; i++) {
+			destFSA.createState(srcStates[i].getPoint());
+			
+			if(srcFSA.isFinalState(srcStates[i])) {
+				destFSA.addFinalState(srcStates[i]);
+			}
+			
+			if(srcFSA.isInitialState(srcStates[i])) {
+				destFSA.setInitialState(srcStates[i]);
+			}
+		}
+			
+		// Check that everything worked
+		if (containSameStates(srcFSA.getStates(),destFSA.getStates())){
+			System.out.println("Success");
+		}
+		
+		else {
+			System.out.println("Failure");
+		}
+		
+		return;
 	}
 
 	/**
-	 * Returns the State array mapped to <CODE>state</CODE>.
-	 * 
+	 * TODO:Returns an array of states reachable from a given state on a given terminal in one hop
 	 * @param state
-	 *            the state.
-	 * @param automaton
-	 *            the nfa whose states are represented by <CODE>state</CODE>.
-	 * @return the State array mapped to <CODE>state</CODE>.
+	 * 			The from state
+	 * @param terminal
+	 * 			The terminal or transition label of interest
+	 * @param fsa
+	 * 			The finite state machine containing the states and transitions
+	 * @return
 	 */
-	public State[] getStatesForState(State state, Automaton automaton) {
-		if (state.getLabel() == null)
-			return new State[0];
-		StringTokenizer tokenizer = new StringTokenizer(state.getLabel(),
-				" \t\n\r\f,q");
+	public State[] getStatesReachableOnTerminal(State state, String terminal, FiniteStateAutomaton fsa) {
+		FSATransition[] allTransitions = (FSATransition[]) fsa.getTransitions();
 		ArrayList states = new ArrayList();
-		while (tokenizer.hasMoreTokens())
-			states.add(automaton.getStateWithID(Integer.parseInt(tokenizer
-					.nextToken())));
-		return (State[]) states.toArray(new State[0]);
-	}
-	
-	/**
-	 * Returns the State mapped to <CODE>states</CODE>.
-	 * 
-	 * @param states
-	 *            the states
-	 * @param dfa
-	 *            the automaton that contains a state that is mapped to <CODE>states</CODE>
-	 * @return the State mapped to <CODE>states</CODE>.
-	 */
-	public State getStateForStates(State[] states, Automaton dfa, Automaton nfa) {
-		State[] dfaStates = dfa.getStates();
-		for (int k = 0; k < dfaStates.length; k++) {
-			State[] nfaStates = getStatesForState(dfaStates[k], nfa);
-			if (containSameStates(nfaStates, states)) {
-				return dfaStates[k];
+		
+		for (int i = 0; i < allTransitions.length; i++) {
+			String label = allTransitions[i].getLabel();
+			State toState = allTransitions[i].getToState();
+			
+			//If the transition is out of the state and has the specified label
+			if (label.equals(terminal) && !toState.equals(state)){
+				states.add(toState);
 			}
 		}
-		return null;
+		
+		return (State[]) states.toArray();
 	}
 	
 	/**
-	 *TODO: Returns a list of States created by expanding <CODE>state</CODE> in
-	 * <CODE>dfa</CODE>. <CODE>state<CODE> is a state in <CODE>dfa</CODE>
-	 * that represents a set of states in <CODE>nfa</CODE>. This method adds
-	 * transitions to <CODE>dfa</CODE> from <CODE>state</CODE> on all
-	 * terminals in the alphabet of <CODE>nfa</CODE> for which it is relevant.
-	 * For each letter in the alphabet, you determine the reachable states (from
-	 * <CODE>nfa</CODE>) from the set of states represented by <CODE>state</CODE>.
-	 * You then create a state in <CODE>dfa</CODE> that represents all these
-	 * reachable states and add a transition to DFA connecting <CODE>state</CODE>
-	 * and this newly created state.
+	 *TODO: Implements the algorithm by which Lambda transitions are removed for a given state
+	 * works by: 
+	 * 1. Calculate the set of states for the closure of the given state over lambda transitions
+	 * 2. Calculate the set of states for one transition from the previous set of states 
+	 * 		over a given terminal
+	 * 3. Calculate the set of states for the closure of the previous set of states over lambda
+	 * 		transitions
 	 * 
 	 * @param state
-	 *            the state from dfa
-	 * @param nfa
-	 *            the nfa being converted to a dfa
-	 * @param dfa
-	 *            the dfa being built from the conversion
-	 * @return a list of States created by expanding <CODE>state</CODE>.
+	 * 			State on which the algorithm will be performed
+	 * @param terminal
+	 * 			The character used as the terminal in step 2
+	 * @param fsa
+	 * 			The FSA which contains the state
+	 * @return
+	 * 		  toStates is the set of states described in step 3
 	 */
-	public ArrayList expandState(State state, Automaton nfa, Automaton dfa) {
-		ArrayList list = new ArrayList();
-		AlphabetRetriever far = new FSAAlphabetRetriever();
-		String[] alphabet = far.getAlphabet(nfa);
-		/** for each letter in the alphabet. */
-		for (int k = 0; k < alphabet.length; k++) {
-			/**
-			 * get states reachable on terminal from all states represented by
-			 * state.
-			 */
-			State[] states = getStatesOnTerminal(alphabet[k],
-					getStatesForState(state, nfa), nfa);
-			/** if any reachable states on terminal. */
-			if (states.length > 0) {
-				/**
-				 * get state from dfa that represents list of reachable states
-				 * in nfa.
-				 */
-				State toState = getStateForStates(states, dfa, nfa);
-				/** if no such state. */
-				if (toState == null) {
-					/** create state, add to list */
-					toState = createStateWithStates(dfa, states, nfa);
-					// StatePlacer sp = new StatePlacer();
-					// Point point = sp.getPointForState(dfa);
-					// toState = dfa.createState(point);
-					// toState.setLabel(getStringForStates(states));
-					// if(hasFinalState(states, nfa)) {
-					// dfa.addFinalState(toState);
-					// }
-					list.add(toState);
-				}
-				/**
-				 * add transition to dfa from state to state that represents
-				 * reachables states on terminal from nfa.
-				 */
-				Transition transition = new FSATransition(state, toState,
-						alphabet[k]);
-				dfa.addTransition(transition);
-			}
+	public State[] processStateOnTerminal (State state, String terminal, FiniteStateAutomaton fsa){
+		State[] closureStates = null; // First set in step 1
+		ArrayList transitionStates = new ArrayList(); // First set in step 2
+		ArrayList toStates = new ArrayList(); // Final Set in step 3
+		
+		
+		// Step 1
+		closureStates = ClosureTaker.getClosure(state, fsa);
+		
+		// Step 2
+		for (int i = 0; i < closureStates.length; i++) {
+			State[] reachableStates = getStatesReachableOnTerminal(closureStates[i],terminal,fsa);
+			transitionStates.add(reachableStates);
 		}
-		return list;
+		
+		// Step 3
+		Iterator it = transitionStates.iterator();
+		
+		while (it.hasNext()) {
+			toStates.add(ClosureTaker.getClosure((State) it.next(),fsa));
+		}
+		
+		return (State[]) toStates.toArray();
 	}
-
 	
 	/**
-	 *TODO: Returns a 
+	 *TODO: Adds Transitions from <CODE>fromState</CODE> to the <CODE>toStates</CODE> with the label for the fsa given
+	 * @param fromState 
+	 * 			State from which the transitions will be added
+	 * @param toStates
+	 * 			States to which transitions will be added
+	 * @param label
+	 * 			Label for the transitions
+	 * @param fsa
+	 * 			The FSA on which these transitions will be added
+	 */
+	public static void addTransitions(State fromState, State[] toStates, String label, FiniteStateAutomaton fsa) {
+		
+		for (int i = 0; i < toStates.length; i++) {
+			FSATransition transition = new FSATransition(fromState, toStates[i], label);
+			fsa.addTransition(transition);
+		}
+	}
+	
+	/**
+	 *TODO: Returns an equivalent NFA without lambda transfers 
 	 * 
-	 * @param automaton
-	 * 			The Automaton on which the lambda transitions will be removed
-	 *            
-	 * @return fsa
+	 * @param srcFSA
+	 * 			The NFA with lambda transitions that the transform is being applied on
+	 * 			NOTE: I'm trying to make this non-destructive and I'm  not sure if I'm
+	 * 					achieving that 
+	 * @return destFSA
 	 * 			The FSA with lambda transitions removed
 	 */
-	public FiniteStateAutomaton removeLambdaTrans(FiniteStateAutomaton srcAutomaton) {
+	public FiniteStateAutomaton removeLambdaTrans(FiniteStateAutomaton srcFSA) {
 		
 		// remove multiple character labels. 
-		if (FSALabelHandler.hasMultipleCharacterLabels(srcAutomaton)) {
-			FSALabelHandler.removeMultipleCharacterLabelsFromAutomaton(srcAutomaton);
+		if (FSALabelHandler.hasMultipleCharacterLabels(srcFSA)) {
+			FSALabelHandler.removeMultipleCharacterLabelsFromAutomaton(srcFSA);
 		}
 		
-		// Initialize the destination automaton
-		FiniteStateAutomaton destAutomaton = new FiniteStateAutomaton();
+		// Setup variables
 		
-		// Copy the source automaton
-		destAutomaton.become(destAutomaton, srcAutomaton);
+		FiniteStateAutomaton destFSA = new FiniteStateAutomaton();
 		
-		// Remove old transitions from state to state
-		Transition[] oldTransitions = destAutomaton.getTransitions();
+		copyStates(srcFSA, destFSA);
 		
-		for(int i = 0; i < oldTransitions.length; i++) {
-			destAutomaton.removeTransition(oldTransitions[i]);
-		}
+		State[] states = destFSA.getStates();
+		State[] toStates = null;
 		
-		// Calculate the transition function for the new Automaton
+		FSAAlphabetRetriever ret = new FSAAlphabetRetriever();
+		String[] alphabet = ret.getAlphabet(srcFSA);
 		
-		State[] states = destAutomaton.getStates();
+		// Calculate new transfer functions for each state on each terminal and add
 		
-		for(int i = 0; i < states.length; i++) {
-			State[] lambdaStates = ClosureTaker.getClosure(states[i], srcAutomaton);
-			
-				AlphabetRetriever far = new FSAAlphabetRetriever();
-				String[] alphabet = far.getAlphabet(srcAutomaton);
-				/** for each letter in the alphabet. */
-				for (int j = 0; j < alphabet.length; j++) {
-					
-					 //get states reachable on terminal from all lambda reachable states
-					 
-					State[] reachableStates = getStatesOnTerminal(alphabet[j], lambdaStates, srcAutomaton);
-					
-					// if any reachable states on terminal.
-					if (reachableStates.length > 0) {
-						
-						State toState = getStateForStates(states, destAutomaton, srcAutomaton);
-						// if no such state.
-						if (toState == null) {
-						break;
-						}
-						
-						
-						 //add transition to the destination Automaton
-						Transition transition = new FSATransition(states[i], toState,
-								alphabet[j]);
-						destAutomaton.addTransition(transition);
-					}
+		for (int i = 0; i < states.length; i++) {
+			for (int j = 0; j < alphabet.length; j++) {
+				if (alphabet[j].equals("LAMBDA")) {
+					break;
+				}
+				
+				else {
+					toStates = processStateOnTerminal(states[i], alphabet[j], destFSA);
+					addTransitions(states[i], toStates, alphabet[j], destFSA);
 				}
 			}
-		
-		// Check to see if the initial state should be a final state (accepts a null string)
-		// I know it's not pretty
-		State initialState = destAutomaton.getInitialState();
-		State[] initialLambdaTransitions = ClosureTaker.getClosure(initialState, srcAutomaton);
-		
-		for(int i = 0; i < initialLambdaTransitions.length; i++) {
-			if (destAutomaton.isFinalState(initialLambdaTransitions[i])) {
-				destAutomaton.addFinalState(initialState);
-			}
 		}
 		
+		// Check equivalence
 		
-		return destAutomaton;
+		return destFSA;
 	}
 
 }
