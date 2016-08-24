@@ -6,6 +6,7 @@ import java.awt.Point;
 
 import org.junit.Test;
 
+import edu.duke.cs.jflap.automata.Automaton;
 import edu.duke.cs.jflap.automata.State;
 import edu.duke.cs.jflap.automata.Transition;
 
@@ -43,7 +44,15 @@ public class LambdaClosureTest {
 		
 		LambdaClosure lc = new LambdaClosure();
 		
-		FiniteStateAutomaton testLambdaRemoved = lc.removeLambdaTrans(test);
+		System.out.println("BEFORE:");
+		lc.printTransitionLabels(test);
+		
+		FiniteStateAutomaton testLambdaRemoved = new FiniteStateAutomaton();
+		Automaton.become(testLambdaRemoved,lc.removeLambdaTrans(test));
+		
+		System.out.println("AFTER:");
+		lc.printTransitionLabels(testLambdaRemoved);
+		
 		System.out.println("DONE");
 	}
 

@@ -47,6 +47,14 @@ public class LambdaClosure {
 
 	}
 
+	public void printTransitionLabels(FiniteStateAutomaton fsa) {
+		Transition[] transitions = fsa.getTransitions();
+		
+		for (int i = 0; i < transitions.length; i++) {
+			System.out.println(((FSATransition) transitions[i]).getLabel());
+		}
+	}
+	
 	/**
 	 * Returns true if <CODE>states1</CODE> and <CODE>states2</CODE> are
 	 * identical (i.e. they contain exactly the same states, and no extras).
@@ -144,11 +152,11 @@ public class LambdaClosure {
 	 * @return
 	 */
 	public State[] getStatesReachableOnTerminal(State state, String terminal, FiniteStateAutomaton fsa) {
-		FSATransition[] allTransitions = (FSATransition[]) fsa.getTransitions();
-		ArrayList states = new ArrayList();
+		Transition[] allTransitions = fsa.getTransitions();
+		ArrayList<State> states = new ArrayList<State>();
 		
 		for (int i = 0; i < allTransitions.length; i++) {
-			String label = allTransitions[i].getLabel();
+			String label = ((FSATransition) allTransitions[i]).getLabel();
 			State toState = allTransitions[i].getToState();
 			
 			//If the transition is out of the state and has the specified label
@@ -157,7 +165,7 @@ public class LambdaClosure {
 			}
 		}
 		
-		return (State[]) states.toArray();
+		return (State[]) states.toArray(new State[0]);
 	}
 	
 	/**
@@ -180,27 +188,38 @@ public class LambdaClosure {
 	 */
 	public State[] processStateOnTerminal (State state, String terminal, FiniteStateAutomaton fsa){
 		State[] closureStates = null; // First set in step 1
-		ArrayList transitionStates = new ArrayList(); // First set in step 2
-		ArrayList toStates = new ArrayList(); // Final Set in step 3
+		ArrayList<State> transitionStates = new ArrayList<State>(); // First set in step 2
+		ArrayList<State> toStates = new ArrayList<State>(); // Final Set in step 3
 		
 		
 		// Step 1
 		closureStates = ClosureTaker.getClosure(state, fsa);
+		State[] reachableStates = null;
 		
 		// Step 2
 		for (int i = 0; i < closureStates.length; i++) {
-			State[] reachableStates = getStatesReachableOnTerminal(closureStates[i],terminal,fsa);
-			transitionStates.add(reachableStates);
+			reachableStates = getStatesReachableOnTerminal(closureStates[i],terminal,fsa);
+			for (int j = 0; j < reachableStates.length; j++) {
+				transitionStates.add(reachableStates[j]);
+			}
 		}
 		
 		// Step 3
-		Iterator it = transitionStates.iterator();
+		Iterator<State> it = transitionStates.iterator();
+		State[] nextClosureStates = null;
 		
 		while (it.hasNext()) {
-			toStates.add(ClosureTaker.getClosure((State) it.next(),fsa));
+			State nextState = it.next();
+			nextClosureStates = ClosureTaker.getClosure(nextState,fsa);
+			
+			for (int i = 0; i < nextClosureStates.length; i++) {
+				if (!toStates.contains(nextClosureStates[i])) {
+					toStates.add(nextClosureStates[i]);
+				}
+			}
 		}
 		
-		return (State[]) toStates.toArray();
+		return (State[]) toStates.toArray(new State[0]);
 	}
 	
 	/**
