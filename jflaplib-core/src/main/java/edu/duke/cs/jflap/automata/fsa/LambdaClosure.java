@@ -133,7 +133,7 @@ public class LambdaClosure {
 			State fromState = allTransitions[i].getFromState();
 			
 			//If the transition is out of the state and has the specified label
-			if (label.equals(terminal) && !toState.equals(state) && fromState.equals(state)){
+			if (label.equals(terminal) && fromState.equals(state)){
 				states.add(toState);
 			}
 		}
@@ -248,16 +248,28 @@ public class LambdaClosure {
 		}
 		
 		State[] states = fsa.getStates();
+		State initState = fsa.getInitialState();
 		State[] toStates = null;
 		
 		FSAAlphabetRetriever ret = new FSAAlphabetRetriever();
 		String[] alphabet = ret.getAlphabet(fsa);
 		
+		// Check for the special case where the initial state has lambda transitions
+		// to a final state
+		
+		State[] initialClosure = ClosureTaker.getClosure(initState, fsa);
+		for (int i = 0; i < initialClosure.length; i++) {
+			if (fsa.isFinalState(initialClosure[i])) {
+				fsa.addFinalState(initState);
+				break;
+			}
+		}
+		
 		// Calculate new transfer functions for each state on each terminal and add
 		
 		for (int i = 0; i < states.length; i++) {
 			for (int j = 0; j < alphabet.length; j++) {
-				if (!alphabet[j].equals("")) {
+				if (!alphabet[j].equals("")) { //Don't want to run this on nulls
 					toStates = null;
 					toStates = processStateOnTerminal(states[i], alphabet[j], fsa);
 					addTransitions(states[i], toStates, alphabet[j], fsa);
