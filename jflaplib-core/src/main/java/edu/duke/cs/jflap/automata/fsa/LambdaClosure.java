@@ -94,7 +94,7 @@ public class LambdaClosure {
 	}
 	
 	/**
-	 * TODO: Copies the states, and only the states, from the srcFSA to the destFSA
+	 *Copies the states, and only the states, from the srcFSA to the destFSA
 	 * @param srcFSA
 	 * @param destFSA
 	 */
@@ -142,7 +142,7 @@ public class LambdaClosure {
 	}
 
 	/**
-	 * TODO:Returns an array of states reachable from a given state on a given terminal in one hop
+	 *Returns an array of states reachable from a given state on a given terminal in one hop
 	 * @param state
 	 * 			The from state
 	 * @param terminal
@@ -169,7 +169,7 @@ public class LambdaClosure {
 	}
 	
 	/**
-	 *TODO: Implements the algorithm by which Lambda transitions are removed for a given state
+	 *Implements the algorithm by which Lambda transitions are removed for a given state
 	 * works by: 
 	 * 1. Calculate the set of states for the closure of the given state over lambda transitions
 	 * 2. Calculate the set of states for one transition from the previous set of states 
@@ -223,7 +223,7 @@ public class LambdaClosure {
 	}
 	
 	/**
-	 *TODO: Adds Transitions from <CODE>fromState</CODE> to the <CODE>toStates</CODE> with the label for the fsa given
+	 *Adds Transitions from <CODE>fromState</CODE> to the <CODE>toStates</CODE> with the label for the fsa given
 	 * @param fromState 
 	 * 			State from which the transitions will be added
 	 * @param toStates
@@ -242,7 +242,7 @@ public class LambdaClosure {
 	}
 	
 	/**
-	 *TODO: Returns an equivalent NFA without lambda transfers 
+	 *Returns an equivalent NFA without lambda transfers 
 	 * 
 	 * @param srcFSA
 	 * 			The NFA with lambda transitions that the transform is being applied on
