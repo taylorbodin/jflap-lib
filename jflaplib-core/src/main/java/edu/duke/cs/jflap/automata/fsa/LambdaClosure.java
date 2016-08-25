@@ -99,43 +99,15 @@ public class LambdaClosure {
 	 * @param destFSA
 	 */
 	public static void copyStates(FiniteStateAutomaton srcFSA, FiniteStateAutomaton destFSA) {
-		State[] srcStates = srcFSA.getStates();
-		State[] destStates = destFSA.getStates();
 		
+		//Copy the src automaton
+		Automaton.become(destFSA, srcFSA);
 		
-		// Check uninitialized
-		// TODO: throw and exception if the fsa has states
-		if (destStates.length > 0) {
-			System.out.println("The Destination FSA already has states!");
-			System.out.println("Deleting states...");
-			
-			for (int i = 0; i < destStates.length; i++) {
-				destFSA.removeState(destStates[i]);
-			}
-			
-			System.out.println("DONE");
-		}
+		//Delete the old transitions
+		Transition[] oldTransitions = destFSA.getTransitions();
 		
-		// Copy states and set special states
-		for (int i = 0; i < srcStates.length; i++) {
-			destFSA.createState(srcStates[i].getPoint());
-			
-			if(srcFSA.isFinalState(srcStates[i])) {
-				destFSA.addFinalState(srcStates[i]);
-			}
-			
-			if(srcFSA.isInitialState(srcStates[i])) {
-				destFSA.setInitialState(srcStates[i]);
-			}
-		}
-			
-		// Check that everything worked
-		if (containSameStates(srcFSA.getStates(),destFSA.getStates())){
-			System.out.println("Success");
-		}
-		
-		else {
-			System.out.println("Failure");
+		for (int i=0; i < oldTransitions.length; i++) {
+			destFSA.removeTransition(oldTransitions[i]);
 		}
 		
 		return;
@@ -158,9 +130,10 @@ public class LambdaClosure {
 		for (int i = 0; i < allTransitions.length; i++) {
 			String label = ((FSATransition) allTransitions[i]).getLabel();
 			State toState = allTransitions[i].getToState();
+			State fromState = allTransitions[i].getFromState();
 			
 			//If the transition is out of the state and has the specified label
-			if (label.equals(terminal) && !toState.equals(state)){
+			if (label.equals(terminal) && !toState.equals(state) && fromState.equals(state)){
 				states.add(toState);
 			}
 		}
@@ -191,12 +164,14 @@ public class LambdaClosure {
 		ArrayList<State> transitionStates = new ArrayList<State>(); // First set in step 2
 		ArrayList<State> toStates = new ArrayList<State>(); // Final Set in step 3
 		
-		
 		// Step 1
+		
 		closureStates = ClosureTaker.getClosure(state, fsa);
+	
+		// Step 2
+		
 		State[] reachableStates = null;
 		
-		// Step 2
 		for (int i = 0; i < closureStates.length; i++) {
 			reachableStates = getStatesReachableOnTerminal(closureStates[i],terminal,fsa);
 			for (int j = 0; j < reachableStates.length; j++) {
@@ -241,6 +216,15 @@ public class LambdaClosure {
 		}
 	}
 	
+	public void removeLambdaTrans(FiniteStateAutomaton fsa) {
+		Transition[] transitions = fsa.getTransitions();
+		for (int i = 0; i < transitions.length; i++) {
+			if (((FSATransition) transitions[i]).getLabel().equals("")) {
+				fsa.removeTransition(transitions[i]);
+			}
+		}
+	}
+	
 	/**
 	 *Returns an equivalent NFA without lambda transfers 
 	 * 
@@ -251,43 +235,41 @@ public class LambdaClosure {
 	 * @return destFSA
 	 * 			The FSA with lambda transitions removed
 	 */
-	public FiniteStateAutomaton removeLambdaTrans(FiniteStateAutomaton srcFSA) {
-		
-		// remove multiple character labels. 
-		if (FSALabelHandler.hasMultipleCharacterLabels(srcFSA)) {
-			FSALabelHandler.removeMultipleCharacterLabelsFromAutomaton(srcFSA);
-		}
+	public void transform(FiniteStateAutomaton srcFSA, FiniteStateAutomaton destFSA) {
 		
 		// Setup variables
 		
-		FiniteStateAutomaton destFSA = new FiniteStateAutomaton();
+		FiniteStateAutomaton fsa = new FiniteStateAutomaton();
+		Automaton.become(fsa, srcFSA);
 		
-		copyStates(srcFSA, destFSA);
+		// remove multiple character labels. 
+		if (FSALabelHandler.hasMultipleCharacterLabels(fsa)) {
+			FSALabelHandler.removeMultipleCharacterLabelsFromAutomaton(fsa);
+		}
 		
-		State[] states = destFSA.getStates();
+		State[] states = fsa.getStates();
 		State[] toStates = null;
 		
 		FSAAlphabetRetriever ret = new FSAAlphabetRetriever();
-		String[] alphabet = ret.getAlphabet(srcFSA);
+		String[] alphabet = ret.getAlphabet(fsa);
 		
 		// Calculate new transfer functions for each state on each terminal and add
 		
 		for (int i = 0; i < states.length; i++) {
 			for (int j = 0; j < alphabet.length; j++) {
-				if (alphabet[j].equals("LAMBDA")) {
-					break;
-				}
-				
-				else {
-					toStates = processStateOnTerminal(states[i], alphabet[j], destFSA);
-					addTransitions(states[i], toStates, alphabet[j], destFSA);
+				if (!alphabet[j].equals("")) {
+					toStates = null;
+					toStates = processStateOnTerminal(states[i], alphabet[j], fsa);
+					addTransitions(states[i], toStates, alphabet[j], fsa);
 				}
 			}
 		}
 		
-		// Check equivalence
+		removeLambdaTrans(fsa);
 		
-		return destFSA;
+		Automaton.become(destFSA, fsa);
+		
+		return;
 	}
 
 }
